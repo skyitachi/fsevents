@@ -14,7 +14,7 @@
     "node": ">=0.8.0"
   },
   "scripts": {
-    "install": "node-pre-gyp install --fallback-to-build",
+    "install": "if [ $FSEVENTS_BUILD_FROM_SOURCE ]; then node-pre-gyp install --build-from-source; else node-pre-gyp install --fallback-to-build; fi;",
     "prepublish": "if [ $(npm -v | head -c 1) -lt 3 ]; then exit 1; fi && npm dedupe",
     "test": "tap ./test"
   },
