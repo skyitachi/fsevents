@@ -13,6 +13,7 @@ void async_propagate(uv_async_t *async) {
   const char *pathptr = NULL;
   uv_mutex_lock(&fse->mutex);
   cnt = fse->events.size();
+  printf("got change events\n");
   for (idx=0; idx<cnt; idx++) {
     event = fse->events.at(idx);
     if (event == NULL) continue;

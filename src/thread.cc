@@ -29,10 +29,14 @@
 #endif
 
 void FSEvents::threadStart() {
-  if (threadloop) return;
+  threadloop = NULL;
+  if (threadloop) {
+    return;
+  }
   if (uv_thread_create(&thread, &FSEvents::threadRun, this)) abort();
 }
 
+// mac os fs events stream callback
 void HandleStreamEvents(ConstFSEventStreamRef stream, void *ctx, size_t numEvents, void *eventPaths, const FSEventStreamEventFlags eventFlags[], const FSEventStreamEventId eventIds[]) {
   FSEvents * fse = (FSEvents *)ctx;
   size_t idx;
@@ -49,14 +53,18 @@ void HandleStreamEvents(ConstFSEventStreamRef stream, void *ctx, size_t numEvent
   uv_mutex_unlock(&fse->mutex);
 }
 
+// run mac os file watch thread
 void FSEvents::threadRun(void *ctx) {
-  FSEvents *fse = (FSEvents*)ctx;
+  FSEvents *fse = (FSEvents*) ctx;
   FSEventStreamContext context = { 0, ctx, NULL, NULL, NULL };
+
   fse->threadloop = CFRunLoopGetCurrent();
+
   FSEventStreamRef stream = FSEventStreamCreate(NULL, &HandleStreamEvents, &context, fse->paths, kFSEventStreamEventIdSinceNow, (CFAbsoluteTime) 0.1, kFSEventStreamCreateFlagNone | kFSEventStreamCreateFlagWatchRoot | kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseCFTypes);
   FSEventStreamScheduleWithRunLoop(stream, fse->threadloop, kCFRunLoopDefaultMode);
   FSEventStreamStart(stream);
   CFRunLoopRun();
+  // handle error
   FSEventStreamStop(stream);
   FSEventStreamUnscheduleFromRunLoop(stream, fse->threadloop, kCFRunLoopDefaultMode);
   FSEventStreamInvalidate(stream);
